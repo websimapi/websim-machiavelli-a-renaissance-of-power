@@ -38,6 +38,7 @@
     </div>
     <div class="header-controls">
       <button id="newGameBtn" class="btn gold">New Campaign</button>
+      <button id="endTurnBtn" class="btn">End Turn</button>
       <button id="saveBtn" class="btn">Wax-Seal Save</button>
       <button id="loadBtn" class="btn">Unseal Load</button>
       <label class="toggle">
@@ -48,6 +49,7 @@
         <input type="checkbox" id="autopilotToggle" />
         <span>AI Autopilot</span>
       </label>
+      <button id="helpBtn" class="btn small">How to Play</button>
     </div>
   </header>
 
@@ -185,6 +187,50 @@
       </div>
     </div>
   </section>
+
+  <!-- How To Play Modal -->
+  <div id="helpModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="helpTitle">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 id="helpTitle">How to Play</h2>
+        <button class="btn tiny" id="closeHelp">&times;</button>
+      </div>
+      <div class="modal-body">
+        <ol class="howto">
+          <li>Speak and scheme. Click Parley under a faction portrait to open dialogue. Pick a reply or compose your own; their trust shifts with your words.</li>
+          <li>Act in shadows. Drag a covert token (💰 🗡️ 🕯️ 🦉) from the Codex onto a map dropzone or a faction portrait to execute it.</li>
+          <li>Manage resources. Watch Political Capital, Public Perception, and Factional Trust dials on the right. Keep them from withering.</li>
+          <li>Read Fortuna. The interlaced serpents show Virtù vs. Fortuna. The ticker whispers the current winds.</li>
+          <li>Advance time. Click End Turn to progress events; or let time pass automatically every 18 seconds.</li>
+          <li>Advisor aid. Toggle AI Advisor for suggestions in the log. Use Draft Directive to have the AI propose a policy.</li>
+          <li>Scenes. Use Courtyard/Market/Council/War Room for ambiance; your covert actions and talks matter most.</li>
+        </ol>
+        <div class="tips">
+          Tips:
+          <ul>
+            <li>High trust (>60) makes factions "Favorable" and opens opportunities; low trust (<40) makes them "Wary".</li>
+            <li>Bribes raise trust but cost capital. Sabotage helps Virtù but harms public and trust. Rumors sway the crowd. Spies raise stability.</li>
+            <li>Save with a wax seal; unseal to continue.</li>
+          </ul>
+        </div>
+        <div class="modal-actions">
+          <button id="startTourBtn" class="btn gold">Guided Tour</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Guided Tour Overlay -->
+  <div id="tourOverlay" class="tour-overlay hidden" aria-hidden="true">
+    <div id="tourBubble" class="tour-bubble">
+      <div class="tour-text"></div>
+      <div class="tour-actions">
+        <button id="tourPrev" class="btn tiny">Back</button>
+        <button id="tourNext" class="btn tiny gold">Next</button>
+        <button id="tourExit" class="btn tiny">Exit</button>
+      </div>
+    </div>
+  </div>
 
   <!-- Footer Now/Turn -->
   <footer class="footer">

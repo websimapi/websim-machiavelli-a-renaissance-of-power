@@ -52,16 +52,22 @@ const els = {
   aiAdvisorToggle: document.getElementById("aiAdvisorToggle"),
   autopilotToggle: document.getElementById("autopilotToggle"),
   ink: document.getElementById("ink-swipe"),
-  wax: document.getElementById("wax-seal"),
+  helpBtn: document.getElementById("helpBtn"),
+  endTurnBtn: document.getElementById("endTurnBtn"),
+  helpModal: document.getElementById("helpModal"),
+  closeHelp: document.getElementById("closeHelp"),
+  startTourBtn: document.getElementById("startTourBtn"),
+  tourOverlay: document.getElementById("tourOverlay"),
+  tourBubble: document.getElementById("tourBubble"),
+  tourText: document.querySelector("#tourBubble .tour-text"),
+  tourPrev: document.getElementById("tourPrev"),
+  tourNext: document.getElementById("tourNext"),
+  tourExit: document.getElementById("tourExit"),
 };
 
-let portraits = {
-  medici: "",
-  papal: "",
-  merc: ""
-};
-
+let portraits = { medici:"", papal:"", merc:"" };
 let conversationHistory = [];
+let currentDialogueFaction = null; // track which faction is speaking
 
 function log(msg){
   const line = document.createElement("div");
@@ -70,6 +76,12 @@ function log(msg){
 }
 
 onLog((m)=>log(m));
+
+// Kick audio on first gesture (helps some browsers)
+window.addEventListener("pointerdown", async function once(){
+  await initAudio(Tone);
+  window.removeEventListener("pointerdown", once, { capture:false });
+}, { capture:false, once:true });
 
 // Codex toggle
 els.codexToggle.addEventListener("click", ()=>{
@@ -122,6 +134,7 @@ function addMessage(role, text){
 
 async function openDialogue(factionId){
   const state = getState();
+  currentDialogueFaction = factionId;
   els.dialogue.classList.add("show");
   els.dialoguePortrait.src = portraits[factionId];
   els.conversation.innerHTML = "";
@@ -159,9 +172,7 @@ els.composeSend.addEventListener("click", async ()=>{
   addMessage("you", msg);
   conversationHistory.push({ role:"user", content: msg });
   conversationHistory = conversationHistory.slice(-10);
-  const currentFaction = els.dialoguePortrait.src.includes(portraits.medici) ? "medici" :
-                         els.dialoguePortrait.src.includes(portraits.papal) ? "papal" : "merc";
-  const reply = await parleyWithFaction(currentFaction, conversationHistory, getState(), true);
+  const reply = await parleyWithFaction(currentDialogueFaction || "medici", conversationHistory, getState(), true);
   addMessage("them", reply.reply);
   conversationHistory.push({ role:"assistant", content: reply.reply });
   els.composeInput.value = "";
@@ -170,11 +181,12 @@ els.composeSend.addEventListener("click", async ()=>{
 
 document.querySelector(".close-dialogue").addEventListener("click", ()=>{
   els.dialogue.classList.remove("show");
+  currentDialogueFaction = null;
 });
 
 // New Game / Save / Load
 els.newGameBtn.addEventListener("click", async ()=>{
-  await startNewCampaign();
+  await startNewCampaign(true);
 });
 els.saveBtn.addEventListener("click", ()=>{
   localStorage.setItem("machiavelli_save", JSON.stringify(getState()));
@@ -190,6 +202,72 @@ els.loadBtn.addEventListener("click", ()=>{
     inkSwipe();
   }
 });
+
+// Add Draft Directive button behavior
+els.draftDirectiveBtn.addEventListener("click", async ()=>{
+  const suggestion = await draftDirectiveAI(getState());
+  if (!suggestion) return;
+  const li = document.createElement("li");
+  li.textContent = `${suggestion.title} — ${suggestion.rationale}`;
+  els.directivesList.prepend(li);
+  log(`Directive drafted: ${suggestion.title}`);
+});
+
+// Help / Onboarding
+els.helpBtn.addEventListener("click", ()=> openHelp());
+els.closeHelp.addEventListener("click", ()=> closeHelp());
+els.startTourBtn.addEventListener("click", ()=> {
+  closeHelp();
+  startTour();
+});
+
+function openHelp(){ els.helpModal.classList.remove("hidden"); }
+function closeHelp(){ els.helpModal.classList.add("hidden"); }
+
+// Simple guided tour
+const tourSteps = [
+  { el: ()=>document.querySelector(".tokens"), text:"Drag these covert tokens onto the map or a faction portrait to act in shadows." },
+  { el: ()=>document.querySelector(".mini-map"), text:"This miniature map shows shifting influence. Drop tokens on its labeled zones." },
+  { el: ()=>document.querySelector(".factions"), text:"Parley with factions here. Their trust changes based on your words and deeds." },
+  { el: ()=>document.querySelector(".meters"), text:"Track your capital, public perception, and trust. Keep the dials healthy." },
+  { el: ()=>els.dialogue, text:"In dialogue, pick a line or compose your own. Choices breed consequences." },
+  { el: ()=>els.endTurnBtn, text:"Click End Turn to advance time and trigger Fortuna's events. Or wait for auto-turn." },
+];
+let tourIndex = 0;
+function startTour(){
+  tourIndex = 0;
+  els.tourOverlay.classList.remove("hidden");
+  showStep();
+}
+function endTour(){
+  els.tourOverlay.classList.add("hidden");
+  clearPulse();
+}
+function clearPulse(){
+  document.querySelectorAll(".pulse").forEach(el=>el.classList.remove("pulse"));
+}
+function showStep(){
+  clearPulse();
+  const step = tourSteps[tourIndex];
+  const target = step.el();
+  if (!target) { endTour(); return; }
+  target.classList.add("pulse");
+  const rect = target.getBoundingClientRect();
+  // position bubble near target
+  const bubble = els.tourBubble;
+  bubble.style.left = Math.min(window.innerWidth - 340, Math.max(12, rect.left + rect.width + 12)) + "px";
+  bubble.style.top = Math.min(window.innerHeight - 200, Math.max(12, rect.top)) + "px";
+  els.tourText.textContent = step.text;
+}
+els.tourNext.addEventListener("click", ()=>{
+  tourIndex = Math.min(tourSteps.length-1, tourIndex+1);
+  showStep();
+});
+els.tourPrev.addEventListener("click", ()=>{
+  tourIndex = Math.max(0, tourIndex-1);
+  showStep();
+});
+els.tourExit.addEventListener("click", endTour);
 
 // Toggles
 els.aiAdvisorToggle.addEventListener("change", ()=>{
@@ -217,6 +295,11 @@ async function endTurn(){
   els.fortuneTicker.textContent = await describeFortuna(s);
   setMode(s.stability >= 0 ? "major" : "minor");
 }
+els.endTurnBtn.addEventListener("click", async ()=>{
+  inkSwipe();
+  await endTurn();
+});
+
 setInterval(async ()=>{
   const s = getState();
   if (document.hidden) return;
@@ -311,7 +394,7 @@ function showWax(show){
 }
 
 // Start new campaign
-async function startNewCampaign(){
+async function startNewCampaign(showTour=false){
   inkSwipe(true);
   initSim(); // fresh state
   await ensurePortraits();
@@ -321,6 +404,11 @@ async function startNewCampaign(){
   init2_5D(els.canvas);
   initMap(els.mapCanvas);
   refreshAll();
+  // Friendly onboarding
+  log("Welcome, Secretary. Open How to Play for a short primer, or take the Guided Tour.");
+  if (showTour) {
+    setTimeout(()=>openHelp(), 400);
+  }
   setTimeout(()=>inkSwipe(false), 600);
 }
 

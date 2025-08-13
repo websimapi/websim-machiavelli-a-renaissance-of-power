@@ -79,6 +79,7 @@ function tick(){
 // Transitions
 export function inkSwipe(forceShow){
   const el = document.getElementById("ink-swipe");
+  if (!el) return;
   if (forceShow){
     el.classList.add("show");
     return;
@@ -86,4 +87,3 @@ export function inkSwipe(forceShow){
   el.classList.add("show");
   setTimeout(()=>el.classList.remove("show"), 500);
 }
-
