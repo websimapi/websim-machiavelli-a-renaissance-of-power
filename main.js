@@ -63,6 +63,8 @@ const els = {
   tourPrev: document.getElementById("tourPrev"),
   tourNext: document.getElementById("tourNext"),
   tourExit: document.getElementById("tourExit"),
+  // Added: reference to the wax seal overlay
+  wax: document.getElementById("wax-seal"),
 };
 
 let portraits = { medici:"", papal:"", merc:"" };
@@ -390,7 +392,10 @@ async function ensurePortraits(){
 
 // Wax seal helper
 function showWax(show){
-  els.wax.classList.toggle("show", show);
+  // Guard if element is missing for any reason
+  const el = els.wax || document.getElementById("wax-seal");
+  if (!el) return;
+  el.classList.toggle("show", show);
 }
 
 // Start new campaign
