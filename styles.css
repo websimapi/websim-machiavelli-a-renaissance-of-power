@@ -115,11 +115,33 @@ body{
   border-top:1px solid rgba(0,0,0,.2);
   touch-action:none;
 }
+
+/* Reworked dropzones: sit below the canvas as tidy cards (no overlap) */
 .dropzones{
-  position:absolute; inset:0; pointer-events:none; display:grid; grid-template-columns: repeat(3, 1fr); gap:6px; padding:8px;
+  position:static;
+  display:grid;
+  grid-template-columns: repeat(3, minmax(0,1fr));
+  gap:8px;
+  padding:8px;
+  background: linear-gradient(#efe3c9, #e6d7b6);
+  border-top:1px solid rgba(0,0,0,.15);
 }
+.dropzone{
+  pointer-events:auto;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  min-height:64px;
+  padding:8px;
+  border-radius:8px;
+  background: rgba(255,255,255,.45);
+  border:1px dashed rgba(0,0,0,.25);
+  color:#2a231a;
+  text-align:center;
+}
+.dropzone .dz-title{ font-weight:bold; letter-spacing:.3px }
+.dropzone .dz-sub{ font-size:12px; opacity:.8; margin-top:2px }
+
 .dropzone, .portrait-drop{ transition: background .15s ease, transform .1s ease }
-.dropzone.hover, .portrait-drop.hover{ background: rgba(121,44,31,.2); transform: scale(1.02) }
+.dropzone.hover, .portrait-drop.hover{ background: rgba(121,44,31,.12); transform: translateY(-1px) }
 
 /* Right side */
 .mini-map{padding:8px}
@@ -242,8 +264,9 @@ body{
   .canvas-panel{order:1}
   .right{order:3}
   .mini-map, .meters, .factions{padding:6px}
+
+  /* Stack targets neatly on mobile */
   .dropzones{grid-template-columns: 1fr}
-  .dropzone{max-width:none; width:95%; justify-self:center}
 
   /* Dialogue as bottom sheet on mobile */
   .dialogue{

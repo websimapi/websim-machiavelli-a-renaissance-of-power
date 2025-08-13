@@ -99,10 +99,20 @@
         <button id="toWarRoom" class="btn small">War Room</button>
       </div>
       <canvas id="florenceCanvas" width="960" height="540" class="canvas"></canvas>
-      <div class="dropzones">
-        <div class="dropzone" data-zone="market" title="Drop covert token to affect Market">Market</div>
-        <div class="dropzone" data-zone="council" title="Drop covert token to affect Council">Council</div>
-        <div class="dropzone" data-zone="barracks" title="Drop covert token to affect Mercenaries">Barracks</div>
+      <!-- City Targets: cleaned up layout, no longer overlapping the canvas -->
+      <div class="dropzones" aria-label="City Targets">
+        <div class="dropzone" data-zone="market" title="Drop covert token to affect Market">
+          <div class="dz-title">Market</div>
+          <div class="dz-sub">Merchants & coin</div>
+        </div>
+        <div class="dropzone" data-zone="council" title="Drop covert token to affect Council">
+          <div class="dz-title">Council</div>
+          <div class="dz-sub">Magistrates & policy</div>
+        </div>
+        <div class="dropzone" data-zone="barracks" title="Drop covert token to affect Mercenaries">
+          <div class="dz-title">Barracks</div>
+          <div class="dz-sub">Condottieri & force</div>
+        </div>
       </div>
     </section>
 
