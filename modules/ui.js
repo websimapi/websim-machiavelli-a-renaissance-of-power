@@ -29,24 +29,35 @@ function init3DScene() {
 
   // Create Three.js scene
   threeScene = new THREE.Scene();
-  threeScene.background = new THREE.Color(0x0a0706);
+  threeScene.background = new THREE.Color(0x2a1810);
 
   // Create camera
   const aspect = canvas.clientWidth / canvas.clientHeight;
   camera = new THREE.PerspectiveCamera(60, aspect, 0.1, 1000);
   camera.position.set(0, 2, 5);
+  camera.lookAt(0, 0, 0);
 
-  // Create renderer
-  renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+  // Create renderer - ensure it uses the canvas correctly
+  renderer = new THREE.WebGLRenderer({ 
+    canvas: canvas, 
+    antialias: true,
+    alpha: false,
+    preserveDrawingBuffer: false
+  });
   renderer.setSize(canvas.clientWidth, canvas.clientHeight);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
 
   // Create environments for each scene
   createEnvironments();
   
   // Set initial environment
   setEnvironment(scene);
+  
+  // Start the render loop immediately
+  tick();
 }
 
 function createEnvironments() {
@@ -61,15 +72,18 @@ function createEnvironments() {
 function createCourtyard() {
   const group = new THREE.Group();
   
-  // Ground plane
+  // Ground plane with better visibility
   const groundGeometry = new THREE.PlaneGeometry(20, 20);
-  const groundMaterial = new THREE.MeshLambertMaterial({ color: 0x8B7355 });
+  const groundMaterial = new THREE.MeshLambertMaterial({ 
+    color: 0x8B7355,
+    side: THREE.DoubleSide
+  });
   const ground = new THREE.Mesh(groundGeometry, groundMaterial);
   ground.rotation.x = -Math.PI / 2;
   ground.receiveShadow = true;
   group.add(ground);
 
-  // Courtyard walls
+  // Courtyard walls - make them more visible
   const wallGeometry = new THREE.BoxGeometry(0.5, 4, 20);
   const wallMaterial = new THREE.MeshLambertMaterial({ color: 0xD4B896 });
   
@@ -83,23 +97,47 @@ function createCourtyard() {
   rightWall.castShadow = true;
   group.add(rightWall);
 
-  // Fountain centerpiece
-  const fountainGeometry = new THREE.CylinderGeometry(1.5, 2, 1, 8);
+  // Back wall
+  const backWallGeometry = new THREE.BoxGeometry(20, 4, 0.5);
+  const backWall = new THREE.Mesh(backWallGeometry, wallMaterial);
+  backWall.position.set(0, 2, -10);
+  backWall.castShadow = true;
+  group.add(backWall);
+
+  // Fountain centerpiece - make it more prominent
+  const fountainGeometry = new THREE.CylinderGeometry(1.5, 2, 1.5, 8);
   const fountainMaterial = new THREE.MeshLambertMaterial({ color: 0xA0A0A0 });
   const fountain = new THREE.Mesh(fountainGeometry, fountainMaterial);
-  fountain.position.set(0, 0.5, 0);
+  fountain.position.set(0, 0.75, 0);
   fountain.castShadow = true;
   group.add(fountain);
 
-  // Ambient lighting
-  const ambientLight = new THREE.AmbientLight(0xFFE4B5, 0.4);
+  // Add some architectural details
+  for (let i = 0; i < 4; i++) {
+    const pillarGeometry = new THREE.BoxGeometry(0.8, 5, 0.8);
+    const pillarMaterial = new THREE.MeshLambertMaterial({ color: 0xC4A484 });
+    const pillar = new THREE.Mesh(pillarGeometry, pillarMaterial);
+    const angle = (i / 4) * Math.PI * 2;
+    pillar.position.set(Math.cos(angle) * 6, 2.5, Math.sin(angle) * 6);
+    pillar.castShadow = true;
+    group.add(pillar);
+  }
+
+  // Stronger ambient lighting
+  const ambientLight = new THREE.AmbientLight(0xFFE4B5, 0.6);
   group.add(ambientLight);
   
-  const dirLight = new THREE.DirectionalLight(0xFFD700, 0.8);
+  const dirLight = new THREE.DirectionalLight(0xFFD700, 1.0);
   dirLight.position.set(5, 10, 5);
   dirLight.castShadow = true;
   dirLight.shadow.mapSize.width = 2048;
   dirLight.shadow.mapSize.height = 2048;
+  dirLight.shadow.camera.near = 0.1;
+  dirLight.shadow.camera.far = 50;
+  dirLight.shadow.camera.left = -20;
+  dirLight.shadow.camera.right = 20;
+  dirLight.shadow.camera.top = 20;
+  dirLight.shadow.camera.bottom = -20;
   group.add(dirLight);
 
   return group;
@@ -248,18 +286,25 @@ function setEnvironment(sceneName) {
     threeScene.add(env);
     currentEnvironment = env;
   }
+  
+  // Force a render
+  if (renderer && threeScene && camera) {
+    renderer.render(threeScene, camera);
+  }
 }
 
 function setupResponsiveCanvases(){
   // Main scene canvas
-  if (canvas) {
+  if (canvas && renderer) {
     fitCanvasToDisplay(canvas);
-    if (renderer) {
-      renderer.setSize(canvas.clientWidth, canvas.clientHeight);
-      if (camera) {
-        camera.aspect = canvas.clientWidth / canvas.clientHeight;
-        camera.updateProjectionMatrix();
-      }
+    renderer.setSize(canvas.clientWidth, canvas.clientHeight);
+    if (camera) {
+      camera.aspect = canvas.clientWidth / canvas.clientHeight;
+      camera.updateProjectionMatrix();
+    }
+    // Force a render after resize
+    if (threeScene) {
+      renderer.render(threeScene, camera);
     }
   }
 }
@@ -304,21 +349,26 @@ export function setScene(s){
 }
 
 export function drawFlorence(ctx, state){
-  // 3D rendering is now handled in the tick function
-  // Keep this function for compatibility
+  // 3D rendering is handled in the tick function
+  // Force a render to ensure the scene is visible
+  if (renderer && threeScene && camera) {
+    renderer.render(threeScene, camera);
+  }
 }
 
+let animationId;
 function tick(){
   if (renderer && threeScene && camera) {
     // Add subtle camera movement for liveliness
     const time = Date.now() * 0.001;
     camera.position.x = Math.sin(time * 0.2) * 0.5;
     camera.position.y = 2 + Math.sin(time * 0.3) * 0.3;
+    camera.lookAt(0, 0, 0);
     
     // Render the 3D scene
     renderer.render(threeScene, camera);
   }
-  requestAnimationFrame(tick);
+  animationId = requestAnimationFrame(tick);
 }
 
 // Transitions
