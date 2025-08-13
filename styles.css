@@ -1,0 +1,200 @@
+:root{
+  --bg:#20160f;
+  --ink:#0d0a09;
+  --parchment:#f0e6d2;
+  --parchment-2:#e8dcc3;
+  --gold:#b28b33;
+  --blood:#792c1f;
+  --shadow:rgba(0,0,0,0.4);
+  --accent:#5f4b32;
+}
+
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;
+  background: radial-gradient(1200px 800px at 40% 20%, #2b2117 0%, #1a130d 60%, #0b0806 100%);
+  color:#f7f2e8;
+  font-family: "IM Fell DW Pica", serif;
+}
+
+/* Ink swipe */
+.ink-swipe{
+  position:fixed; inset:0;
+  background: radial-gradient(60% 100% at 50% 50%, #120e0b 0%, #0a0706 50%, #000 100%);
+  mix-blend-mode:multiply;
+  opacity:0; pointer-events:none;
+  transition:opacity .8s ease;
+}
+.ink-swipe.show{opacity:1}
+
+/* Wax seal */
+.wax-seal{
+  position:fixed; inset:0; display:flex; align-items:center; justify-content:center;
+  background: rgba(0,0,0,.35);
+  opacity:0; pointer-events:none; transition:.4s ease;
+}
+.wax-seal.show{opacity:1; pointer-events:auto}
+.wax-seal .seal{
+  width:160px; height:160px; border-radius:50%;
+  background: radial-gradient(circle at 30% 30%, #b44134 0%, #7b1d17 60%, #4a0f0c 100%);
+  box-shadow: 0 10px 30px var(--shadow), inset 0 6px 12px rgba(255,255,255,.15);
+  display:flex; align-items:center; justify-content:center;
+  border:6px solid rgba(0,0,0,.25);
+}
+.seal-text{font-family:"IM Fell English SC", serif; letter-spacing:1px}
+
+/* Header */
+.header{
+  display:flex; align-items:center; justify-content:space-between;
+  padding:10px 16px; background:linear-gradient(#2a2017, #1e160f);
+  border-bottom:1px solid rgba(255,255,255,.08);
+}
+.title{font-size:26px; letter-spacing:1px}
+.dropcap{font-size:34px; color:var(--gold); text-shadow:0 0 8px rgba(178,139,51,.3)}
+.header-controls{display:flex; gap:8px; align-items:center}
+.toggle{display:flex; gap:6px; align-items:center; opacity:.9}
+
+.btn{
+  background: linear-gradient(#5a4631, #3d2f21);
+  border:1px solid rgba(255,255,255,.15);
+  color:#f3e9d5; padding:8px 12px; border-radius:6px; cursor:pointer;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.15), 0 2px 6px rgba(0,0,0,.35);
+  font-family:"IM Fell English SC", serif;
+}
+.btn:hover{filter:brightness(1.1)}
+.btn.gold{background:linear-gradient(#b28b33, #7a5f23); color:#1d140b}
+.btn.small{padding:6px 10px; font-size:12px}
+.btn.tiny{padding:4px 8px; font-size:11px}
+
+/* Layout */
+.layout{
+  display:grid; grid-template-columns: 340px 1fr 360px; gap:12px;
+  padding:12px; min-height:calc(100vh - 116px);
+}
+
+/* Panels */
+.panel{
+  background: radial-gradient(800px 600px at 30% 20%, var(--parchment) 0%, var(--parchment-2) 60%, #d7c7a3 100%);
+  color:#2a231a; border:1px solid rgba(0,0,0,.25);
+  box-shadow: inset 0 10px 60px rgba(255,255,255,.25), 0 8px 28px rgba(0,0,0,.35);
+  border-radius:8px; overflow:hidden; position:relative;
+}
+.panel .panel-header{
+  display:flex; justify-content:space-between; align-items:center;
+  padding:8px 12px; background:linear-gradient(#e8dcc3, #ddcfb0);
+  border-bottom:1px solid rgba(0,0,0,.15); cursor:pointer;
+  font-family:"IM Fell English SC", serif;
+}
+.scroll-title{font-size:18px}
+.codex-content{padding:10px 12px; max-height:calc(100% - 42px); overflow:auto}
+.codex.collapsed .codex-content{display:none}
+.codex{display:flex; flex-direction:column; min-height:560px}
+
+.codex-entry + .codex-entry{margin-top:12px}
+.codex-entry h3{margin:0 0 6px 0; font-size:18px}
+.tokens{display:flex; gap:8px}
+.token{
+  width:36px; height:36px; display:grid; place-items:center; border-radius:50%;
+  background: radial-gradient(#d2b886, #b1915c);
+  border:1px solid rgba(0,0,0,.25); cursor:grab; user-select:none; font-size:18px;
+}
+.hint{font-size:12px; opacity:.8}
+.log{
+  height:200px; overflow:auto; padding:8px; background:rgba(255,255,255,.35);
+  border:1px solid rgba(0,0,0,.2); border-radius:6px; font-size:14px
+}
+
+.canvas-panel{display:flex; flex-direction:column}
+.scene-toolbar{display:flex; gap:6px; padding:8px; background:rgba(0,0,0,.06)}
+.canvas{
+  width:100%; aspect-ratio:16/9; background:#101010; display:block;
+  border-top:1px solid rgba(0,0,0,.2)
+}
+.dropzones{
+  position:absolute; inset:0; pointer-events:none; display:grid; grid-template-columns: repeat(3, 1fr); gap:6px; padding:8px;
+}
+.dropzone{
+  align-self:end; justify-self:center; width:90%; max-width:220px; padding:6px; text-align:center;
+  background: rgba(121, 44, 31, .12); border:1px dashed rgba(121,44,31,.6);
+  border-radius:6px; pointer-events:auto; color:#3a281f; font-weight:bold
+}
+
+/* Right side */
+.mini-map{padding:8px}
+.mini-map-header{font-weight:bold; margin:6px 0 8px}
+.legend{display:flex; gap:12px; font-size:12px; margin-top:4px}
+.dot{display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:4px}
+.dot.medici{background:#b23b3b}
+.dot.papal{background:#3b6ab2}
+.dot.merc{background:#3bb26b}
+
+.meters{padding:8px; display:grid; gap:10px}
+.meter label{font-size:12px; opacity:.8}
+.dial{
+  height:12px; background:linear-gradient(90deg, #bfa36a, #876a2f); border-radius:12px; position:relative;
+}
+.dial::after{
+  content:""; position:absolute; top:-2px; bottom:-2px; width:2px; background:#33250d; left:50%;
+  box-shadow:0 0 8px rgba(0,0,0,.35)
+}
+.serpents{padding-bottom:8px}
+
+/* Factions */
+.factions{display:grid; gap:10px; padding:8px}
+.faction{
+  display:grid; grid-template-columns: 64px 1fr; gap:8px; align-items:center;
+  background:rgba(255,255,255,.25); border:1px solid rgba(0,0,0,.15); border-radius:8px; padding:6px;
+}
+.portrait{
+  width:64px; height:64px; object-fit:cover; border-radius:6px;
+  border:2px solid #a7843f; box-shadow:0 2px 8px rgba(0,0,0,.3)
+}
+.faction-info .name{font-weight:bold}
+.faction .portrait-drop{
+  margin-top:6px; border:1px dashed rgba(0,0,0,.3); border-radius:6px; padding:4px; text-align:center; font-size:12px
+}
+
+/* Dialogue */
+.dialogue{
+  position:fixed; right:16px; bottom:16px; width:520px; max-width:95vw;
+  background: radial-gradient(600px 400px at 30% 20%, var(--parchment) 0%, var(--parchment-2) 60%, #d7c7a3 100%);
+  color:#2a231a; border:1px solid rgba(0,0,0,.25);
+  border-radius:10px; box-shadow:0 10px 40px rgba(0,0,0,.45); display:none;
+}
+.dialogue.show{display:block}
+.dialogue-header{
+  display:flex; justify-content:space-between; align-items:center; padding:8px 10px;
+  background:linear-gradient(#e8dcc3, #ddcfb0); border-bottom:1px solid rgba(0,0,0,.15)
+}
+.dialogue-body{display:grid; grid-template-columns: 92px 1fr; gap:10px; padding:10px}
+.portrait-wrap{
+  width:92px; height:92px; border-radius:8px; overflow:hidden; border:2px solid #a7843f;
+  box-shadow:0 2px 8px rgba(0,0,0,.35)
+}
+.conversation{max-height:240px; overflow:auto; background:rgba(255,255,255,.35); border-radius:8px; padding:8px}
+.message{margin-bottom:8px}
+.message.you{color:#3b2b1d}
+.message.them{color:#1f2433}
+.choices{display:grid; gap:6px; padding:8px}
+.compose{display:flex; gap:6px; padding:8px}
+
+/* Footer */
+.footer{
+  display:flex; align-items:center; justify-content:space-between; gap:12px;
+  padding:8px 12px; color:#d7c7a3; background:linear-gradient(#20160f,#16100b); border-top:1px solid rgba(255,255,255,.08)
+}
+#fortuneTicker{font-style:italic; opacity:.9}
+
+/* Portrait mood morphing */
+.mood-good{filter: saturate(1.1) brightness(1.05)}
+.mood-bad{filter: saturate(.8) brightness(.9) sepia(.25)}
+
+/* Responsive */
+@media (max-width: 1100px){
+  .layout{grid-template-columns: 1fr}
+  .right{order:3}
+  .codex{order:1}
+  .canvas-panel{order:2}
+}
+

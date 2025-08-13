@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Machiavelli: A Renaissance of Power</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- Parchment aesthetic fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=IM+Fell+English+SC&family=IM+Fell+DW+Pica&display=swap" rel="stylesheet">
+
+  <!-- Import Map for browser-native modules -->
+  <script type="importmap">
+  {
+    "imports": {
+      "tone": "https://cdn.jsdelivr.net/npm/tone@14.8.49/build/Tone.js",
+      "gsap": "https://cdn.jsdelivr.net/npm/gsap@3.12.5/index.js"
+    }
+  }
+  </script>
+
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <!-- Ink swirl transition overlay -->
+  <div id="ink-swipe" class="ink-swipe hidden"></div>
+
+  <!-- Wax seal confirmation -->
+  <div id="wax-seal" class="wax-seal hidden" aria-hidden="true">
+    <div class="seal">
+      <span class="seal-text">SEAL OF STATE</span>
+    </div>
+  </div>
+
+  <!-- Header -->
+  <header class="header">
+    <div class="title">
+      <span class="dropcap">M</span>achiavelli: A Renaissance of Power
+    </div>
+    <div class="header-controls">
+      <button id="newGameBtn" class="btn gold">New Campaign</button>
+      <button id="saveBtn" class="btn">Wax-Seal Save</button>
+      <button id="loadBtn" class="btn">Unseal Load</button>
+      <label class="toggle">
+        <input type="checkbox" id="aiAdvisorToggle" />
+        <span>AI Advisor</span>
+      </label>
+      <label class="toggle">
+        <input type="checkbox" id="autopilotToggle" />
+        <span>AI Autopilot</span>
+      </label>
+    </div>
+  </header>
+
+  <!-- Main layout -->
+  <main class="layout">
+    <!-- Left: Codex (collapsible) -->
+    <section class="panel codex" id="codex">
+      <div class="panel-header" id="codexToggle">
+        <div class="scroll-title">Strategic Codex</div>
+        <div class="chevron">▾</div>
+      </div>
+      <div class="codex-content">
+        <div class="codex-entry">
+          <h3>Directives</h3>
+          <ul id="directivesList"></ul>
+          <div class="codex-actions">
+            <button id="draftDirectiveBtn" class="btn">Draft Directive</button>
+          </div>
+        </div>
+
+        <div class="codex-entry">
+          <h3>Covert Actions</h3>
+          <div class="tokens">
+            <div class="token" draggable="true" data-action="bribe" title="Bribery">💰</div>
+            <div class="token" draggable="true" data-action="sabotage" title="Sabotage">🗡️</div>
+            <div class="token" draggable="true" data-action="rumor" title="Rumor-seeding">🕯️</div>
+            <div class="token" draggable="true" data-action="spy" title="Espionage">🦉</div>
+          </div>
+          <p class="hint">Drag tokens onto targets on the map or onto a faction portrait.</p>
+        </div>
+
+        <div class="codex-entry">
+          <h3>Campaign Log</h3>
+          <div id="log" class="log"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Center: 2.5D Florence -->
+    <section class="panel canvas-panel">
+      <div class="scene-toolbar">
+        <button id="toCourtyard" class="btn small">Courtyard</button>
+        <button id="toMarket" class="btn small">Market</button>
+        <button id="toCouncil" class="btn small">Council Chamber</button>
+        <button id="toWarRoom" class="btn small">War Room</button>
+      </div>
+      <canvas id="florenceCanvas" width="960" height="540" class="canvas"></canvas>
+      <div class="dropzones">
+        <div class="dropzone" data-zone="market" title="Drop covert token to affect Market">Market</div>
+        <div class="dropzone" data-zone="council" title="Drop covert token to affect Council">Council</div>
+        <div class="dropzone" data-zone="barracks" title="Drop covert token to affect Mercenaries">Barracks</div>
+      </div>
+    </section>
+
+    <!-- Right: Factions, Mini-map, Meters -->
+    <aside class="panel right">
+      <section class="mini-map">
+        <div class="mini-map-header">Florence & Environs</div>
+        <canvas id="mapCanvas" width="300" height="200"></canvas>
+        <div class="legend">
+          <span><span class="dot medici"></span>Medici</span>
+          <span><span class="dot papal"></span>Papal</span>
+          <span><span class="dot merc"></span>Condottieri</span>
+        </div>
+      </section>
+
+      <section class="meters">
+        <div class="meter">
+          <label>Political Capital</label>
+          <div class="dial" id="dialCapital"></div>
+        </div>
+        <div class="meter">
+          <label>Public Perception</label>
+          <div class="dial" id="dialPublic"></div>
+        </div>
+        <div class="meter">
+          <label>Factional Trust</label>
+          <div class="dial" id="dialTrust"></div>
+        </div>
+        <div class="meter serpents">
+          <label>Virtù – Fortuna</label>
+          <canvas id="serpentsCanvas" width="260" height="80"></canvas>
+        </div>
+      </section>
+
+      <section class="factions">
+        <div class="faction" data-faction-id="medici">
+          <img class="portrait" id="portrait-medici" alt="Medici portrait" />
+          <div class="faction-info">
+            <div class="name">House Medici</div>
+            <div class="mood" id="mood-medici">Neutral</div>
+            <button class="btn tiny talk-btn" data-faction="medici">Parley</button>
+            <div class="portrait-drop" data-faction="medici">Drop Token</div>
+          </div>
+        </div>
+        <div class="faction" data-faction-id="papal">
+          <img class="portrait" id="portrait-papal" alt="Papal envoy portrait" />
+          <div class="faction-info">
+            <div class="name">Papal Envoys</div>
+            <div class="mood" id="mood-papal">Neutral</div>
+            <button class="btn tiny talk-btn" data-faction="papal">Parley</button>
+            <div class="portrait-drop" data-faction="papal">Drop Token</div>
+          </div>
+        </div>
+        <div class="faction" data-faction-id="merc">
+          <img class="portrait" id="portrait-merc" alt="Mercenary captain portrait" />
+          <div class="faction-info">
+            <div class="name">Condottieri</div>
+            <div class="mood" id="mood-merc">Neutral</div>
+            <button class="btn tiny talk-btn" data-faction="merc">Parley</button>
+            <div class="portrait-drop" data-faction="merc">Drop Token</div>
+          </div>
+        </div>
+      </section>
+    </aside>
+  </main>
+
+  <!-- Dialogue Panel -->
+  <section class="dialogue" id="dialogue">
+    <div class="dialogue-header">
+      <div class="dialogue-title">Council Discourse</div>
+      <button class="btn tiny close-dialogue">&times;</button>
+    </div>
+    <div class="dialogue-body">
+      <div class="portrait-wrap">
+        <img id="dialoguePortrait" alt="Speaker" />
+      </div>
+      <div class="conversation" id="conversation"></div>
+    </div>
+    <div class="dialogue-actions">
+      <div id="choices" class="choices"></div>
+      <div class="compose">
+        <input id="composeInput" placeholder="Compose a response..." />
+        <button id="composeSend" class="btn gold">Speak</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer Now/Turn -->
+  <footer class="footer">
+    <div>Turn <span id="turnNum">1</span> • Year <span id="yearNum">1498</span> • Standing: <span id="standingText">Precarious</span></div>
+    <div class="fortune" id="fortuneTicker">Fortuna stirs...</div>
+  </footer>
+
+  <script type="module" src="main.js"></script>
+<script defer src="https://static.cloudflareinsights.com/beacon.min.js/v8c78df7c7c0f484497ecbca7046644da1771523124516" integrity="sha512-8DS7rgIrAmghBFwoOTujcf6D9rXvH8xm8JQ1Ja01h9QX8EzXldiszufYa4IFfKdLUKTTrnSFXLDkUEOTrZQ8Qg==" data-cf-beacon='{"version":"2024.11.0","token":"4c6229722a6346bc8eb5cb0e5eae5d41","server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' crossorigin="anonymous"></script>
+</body>
+</html>
+
