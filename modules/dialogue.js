@@ -1,7 +1,7 @@
 import { els } from "./elements.js";
 import { parleyWithFaction } from "./ai.js";
 import { getState } from "./simulation.js";
-import { updateReputationUI } from "../main.js";
+import { updateReputationUI } from "./game.js";
 
 let conversationHistory = [];
 let currentDialogueFaction = null;
