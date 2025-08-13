@@ -2,6 +2,11 @@ let synth, bass, current = "minor";
 let initialized = false;
 let transportStarted = false;
 
+// New: keep references to scheduled events to avoid duplicates
+let schedMelodyId = null;
+let schedBassId = null;
+let noteIndex = 0;
+
 export async function initAudio(Tone){
   if (initialized || !Tone) return;
 
@@ -29,40 +34,55 @@ export async function initAudio(Tone){
     synth.connect(reverb);
   }
 
-  // Musical patterns (avoid using Tone.now to fix error across builds)
-  const Pattern = Tone.Pattern || Tone.Sequence;
-  const Loop = Tone.Loop;
-
-  const notesMinor = ["A3","C4","D4","E4","G4","A4"];
-  const notesMajor = ["C4","E4","G4","A4","B4","C5"];
-  const pattern = new Pattern((time, note)=>{
-    synth.triggerAttackRelease(note, "8n", time);
-  }, notesMinor, "upDown");
-
-  let bassPart;
-  if (Loop){
-    bassPart = new Loop((time)=>{
-      bass.triggerAttackRelease(current==="minor" ? "A2" : "C3", "8n", time);
-    }, "2n");
-  }
-
-  // Configure transport, but don't rely on Tone.now()
+  // Configure transport safely
   if (Tone?.Transport){
     Tone.Transport.bpm.value = 78;
-    // Start transport safely
+
+    // Clear any pre-existing scheduled events (defensive)
+    if (schedMelodyId !== null) { Tone.Transport.clear(schedMelodyId); schedMelodyId = null; }
+    if (schedBassId !== null) { Tone.Transport.clear(schedBassId); schedBassId = null; }
+
+    // Schedule melody with slight epsilon offset to avoid equal-time retriggers
+    schedMelodyId = Tone.Transport.scheduleRepeat((time)=>{
+      const scaleNotes = scale(current);
+      const note = scaleNotes[noteIndex % scaleNotes.length];
+      // tiny offset prevents "Start time must be strictly greater" in some browsers
+      synth.triggerAttackRelease(note, "8n", time + 0.0005);
+      noteIndex++;
+    }, "8n");
+
+    // Schedule bass
+    schedBassId = Tone.Transport.scheduleRepeat((time)=>{
+      const note = current === "minor" ? "A2" : "C3";
+      bass.triggerAttackRelease(note, "8n", time + 0.0005);
+    }, "2n");
+
+    // Start transport once
     try {
       if (Tone.Transport.state !== "started") {
-        Tone.Transport.start();
+        Tone.Transport.start("+0.05"); // slight delay to ensure proper ordering
       }
       transportStarted = true;
     } catch(e){
       transportStarted = false; // will retry on next user interaction
     }
-  }
 
-  // Start parts
-  pattern.start(0);
-  if (bassPart?.start) bassPart.start(0.5);
+    // Handle page visibility to reduce glitches
+    const onVis = ()=>{
+      try{
+        if (document.hidden){
+          if (Tone.Transport.state === "started") Tone.Transport.pause();
+        }else{
+          // resume only if we had started before
+          if (transportStarted && Tone.Transport.state !== "started"){
+            Tone.Transport.start("+0.05");
+          }
+        }
+      }catch(_e){}
+    };
+    document.removeEventListener("visibilitychange", onVis);
+    document.addEventListener("visibilitychange", onVis, { passive:true });
+  }
 
   initialized = true;
 }
