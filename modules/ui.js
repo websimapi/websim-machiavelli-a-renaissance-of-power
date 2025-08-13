@@ -7,10 +7,32 @@ let bgLayers = []; // generated images urls
 
 export function init2_5D(c){
   canvas = c;
+  // Resize for device pixel ratio and on viewport changes
+  setupResponsiveCanvases();
+  window.addEventListener("resize", setupResponsiveCanvases, { passive:true });
+
   // generate parchment city layers
-  // We'll synthesize a trio of backgrounds for parallax using AI image generation
   generateLayers();
   requestAnimationFrame(tick);
+}
+
+function setupResponsiveCanvases(){
+  // Main scene canvas
+  if (canvas) fitCanvasToDisplay(canvas);
+  // Map + Serpents handled in main.js after get refs; provide helpers here if needed
+}
+
+export function fitCanvasToDisplay(cnv){
+  const dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+  const rect = cnv.getBoundingClientRect();
+  const w = Math.floor(rect.width * dpr);
+  const h = Math.floor(rect.height * dpr);
+  if (cnv.width !== w || cnv.height !== h){
+    cnv.width = w;
+    cnv.height = h;
+  }
+  const ctx = cnv.getContext("2d");
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0); // draw using CSS pixels
 }
 
 async function generateLayers(){
@@ -40,7 +62,7 @@ export function setScene(s){
 
 export function drawFlorence(ctx, state){
   if (!ctx) return;
-  const w = ctx.canvas.width, h = ctx.canvas.height;
+  const w = ctx.canvas.clientWidth, h = ctx.canvas.clientHeight;
   ctx.clearRect(0,0,w,h);
 
   const index = scene==="courtyard"?0:scene==="market"?1:scene==="council"?2:3;
@@ -72,7 +94,7 @@ export function drawFlorence(ctx, state){
 
 function tick(){
   const ctx = canvas?.getContext("2d");
-  if (ctx) drawFlorence(ctx, null||{});
+  if (ctx) drawFlorence(ctx, {});
   requestAnimationFrame(tick);
 }
 

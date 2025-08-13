@@ -1,10 +1,12 @@
 export function initMap(canvas){
+  fitCanvasToDisplay(canvas);
   const ctx = canvas.getContext("2d");
   drawBase(ctx);
 }
 export function updateMap(ctx, state){
+  fitCanvasToDisplay(ctx.canvas);
   drawBase(ctx);
-  const w = ctx.canvas.width, h = ctx.canvas.height;
+  const w = ctx.canvas.clientWidth, h = ctx.canvas.clientHeight;
   // Borders shift
   const t = state.mapBordersShift || 0;
   // territories as radii
@@ -31,7 +33,8 @@ export function updateMap(ctx, state){
   }
 }
 function drawBase(ctx){
-  const w = ctx.canvas.width, h = ctx.canvas.height;
+  fitCanvasToDisplay(ctx.canvas);
+  const w = ctx.canvas.clientWidth, h = ctx.canvas.clientHeight;
   ctx.clearRect(0,0,w,h);
   const grd = ctx.createLinearGradient(0,0,0,h);
   grd.addColorStop(0,"#e9ddc5");
@@ -55,6 +58,18 @@ function drawBase(ctx){
   for (let y=0;y<h;y+=20){ ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(w,y); ctx.stroke(); }
 }
 
+function fitCanvasToDisplay(cnv){
+  const dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+  const rect = cnv.getBoundingClientRect();
+  const w = Math.floor(rect.width * dpr);
+  const h = Math.floor(rect.height * dpr);
+  if (cnv.width !== w || cnv.height !== h){
+    cnv.width = w; cnv.height = h;
+  }
+  const ctx = cnv.getContext("2d");
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+
 function hexToRgba(hex, a){
   const n = parseInt(hex.replace("#",""),16);
   const r = n>>16 & 255, g = n>>8 & 255, b = n & 255;
@@ -64,4 +79,3 @@ function rseed(s){
   let h=0; for(let i=0;i<s.length;i++) h=(h*31 + s.charCodeAt(i))|0;
   return (h>>>0)%100/50;
 }
-

@@ -2,7 +2,7 @@ import Tone from "tone";
 import { initAudio, setMode } from "./modules/audio.js";
 import { initAI, parleyWithFaction, draftDirectiveAI, describeFortuna } from "./modules/ai.js";
 import { initSim, applyCovertAction, nextTurn, getState, onLog } from "./modules/simulation.js";
-import { drawFlorence, setScene, init2_5D, inkSwipe } from "./modules/ui.js";
+import { drawFlorence, setScene, init2_5D, inkSwipe, fitCanvasToDisplay } from "./modules/ui.js";
 import { initMap, updateMap } from "./modules/worldmap.js";
 
 const els = {
@@ -65,25 +65,37 @@ const els = {
   tourExit: document.getElementById("tourExit"),
   // Added: reference to the wax seal overlay
   wax: document.getElementById("wax-seal"),
+  audioToggleBtn: document.getElementById("audioToggleBtn"),
 };
 
 let portraits = { medici:"", papal:"", merc:"" };
 let conversationHistory = [];
 let currentDialogueFaction = null; // track which faction is speaking
 
+// Log
 function log(msg){
   const line = document.createElement("div");
   line.textContent = msg;
   els.log.prepend(line);
 }
-
 onLog((m)=>log(m));
 
 // Kick audio on first gesture (helps some browsers)
+let audioEnabled = true;
 window.addEventListener("pointerdown", async function once(){
   await initAudio(Tone);
   window.removeEventListener("pointerdown", once, { capture:false });
 }, { capture:false, once:true });
+
+// Audio toggle (mobile-friendly)
+els.audioToggleBtn.addEventListener("click", async ()=>{
+  audioEnabled = !audioEnabled;
+  els.audioToggleBtn.setAttribute("aria-pressed", String(audioEnabled));
+  els.audioToggleBtn.textContent = audioEnabled ? "🔈" : "🔇";
+  // If enabling, ensure audio is initialized
+  if (audioEnabled) { await initAudio(Tone); }
+  log(audioEnabled ? "Audio enabled." : "Audio muted.");
+});
 
 // Codex toggle
 els.codexToggle.addEventListener("click", ()=>{
@@ -96,18 +108,58 @@ els.toMarket.addEventListener("click", ()=>setScene("market"));
 els.toCouncil.addEventListener("click", ()=>setScene("council"));
 els.toWarRoom.addEventListener("click", ()=>setScene("warroom"));
 
-// Drag n Drop tokens
+// Drag n Drop tokens (mouse)
 els.tokens.forEach(t=>{
   t.addEventListener("dragstart", e=>{
     e.dataTransfer.setData("text/plain", t.dataset.action);
   });
 });
+
+// Touch DnD support (mobile)
+let touchDrag = null;
+els.tokens.forEach(t=>{
+  t.addEventListener("touchstart", (e)=>{
+    const touch = e.touches[0];
+    touchDrag = { action: t.dataset.action, el: t };
+    document.body.classList.add("dragging");
+    e.preventDefault();
+  }, { passive:false });
+});
+
+function getDropTargetFromPoint(x,y){
+  const el = document.elementFromPoint(x,y);
+  if (!el) return null;
+  const dz = el.closest(".dropzone, .portrait-drop");
+  return dz || null;
+}
+
+window.addEventListener("touchmove", (e)=>{
+  if (!touchDrag) return;
+  const touch = e.touches[0];
+  const target = getDropTargetFromPoint(touch.clientX, touch.clientY);
+  document.querySelectorAll(".dropzone, .portrait-drop").forEach(z=>z.classList.toggle("hover", z===target));
+}, { passive:true });
+
+window.addEventListener("touchend", (e)=>{
+  if (!touchDrag) return;
+  const touch = e.changedTouches[0];
+  const target = getDropTargetFromPoint(touch.clientX, touch.clientY);
+  document.querySelectorAll(".dropzone, .portrait-drop").forEach(z=>z.classList.remove("hover"));
+  if (target){
+    handleDrop(target, touchDrag.action);
+  }
+  touchDrag = null;
+  document.body.classList.remove("dragging");
+});
+
+// Common drop handler
 const handleDrop = (target, data)=>{
   const zone = target.dataset.zone || null;
   const faction = target.dataset.faction || null;
   applyCovertAction({ action:data, zone, faction });
   inkSwipe();
 };
+
 [...els.dropzones, ...els.portraitDrops].forEach(dz=>{
   dz.addEventListener("dragover", e=>e.preventDefault());
   dz.addEventListener("drop", e=>{
@@ -302,11 +354,10 @@ els.endTurnBtn.addEventListener("click", async ()=>{
   await endTurn();
 });
 
+// Auto-turn
 setInterval(async ()=>{
-  const s = getState();
   if (document.hidden) return;
   if (els.autopilotToggle.checked){
-    // Let AI suggest and apply one directive per turn
     const suggestion = await draftDirectiveAI(getState());
     if (suggestion){
       log("AI Advisor: " + suggestion.title);
@@ -322,15 +373,13 @@ function setDial(el, value01){
 }
 function renderSerpents(v, f){
   const ctx = els.serpentsCanvas.getContext("2d");
-  const w = ctx.canvas.width, h = ctx.canvas.height;
+  fitCanvasToDisplay(els.serpentsCanvas);
+  const w = els.serpentsCanvas.clientWidth, h = els.serpentsCanvas.clientHeight;
   ctx.clearRect(0,0,w,h);
-  // background parchment tone
   ctx.fillStyle = "rgba(0,0,0,0.03)";
   ctx.fillRect(0,0,w,h);
-  // draw interlaced serpents as bezier waves
   const steps = 32;
   ctx.lineWidth = 5;
-  // Virtù serpent
   ctx.strokeStyle = "#7a5f23";
   ctx.beginPath();
   for(let i=0;i<=steps;i++){
@@ -340,7 +389,6 @@ function renderSerpents(v, f){
     i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
   }
   ctx.stroke();
-  // Fortuna serpent
   ctx.strokeStyle = "#2f4f6f";
   ctx.beginPath();
   for(let i=0;i<=steps;i++){
@@ -359,7 +407,6 @@ function updateReputationUI(){
   const avgTrust = (s.factions.medici.trust + s.factions.papal.trust + s.factions.merc.trust)/3;
   setDial(els.dialTrust, avgTrust/100);
 
-  // mood text + portrait filters
   for (const id of ["medici","papal","merc"]){
     const mood = s.factions[id].trust > 60 ? "Favorable" : s.factions[id].trust < 40 ? "Wary" : "Neutral";
     els.moods[id].textContent = mood;
@@ -390,9 +437,8 @@ async function ensurePortraits(){
   }
 }
 
-// Wax seal helper
+// Wax seal helper (guard stays)
 function showWax(show){
-  // Guard if element is missing for any reason
   const el = els.wax || document.getElementById("wax-seal");
   if (!el) return;
   el.classList.toggle("show", show);
@@ -408,8 +454,11 @@ async function startNewCampaign(showTour=false){
   setMode("minor");
   init2_5D(els.canvas);
   initMap(els.mapCanvas);
+  // Also ensure canvases fit on mobile
+  fitCanvasToDisplay(els.canvas);
+  fitCanvasToDisplay(els.mapCanvas);
+  fitCanvasToDisplay(els.serpentsCanvas);
   refreshAll();
-  // Friendly onboarding
   log("Welcome, Secretary. Open How to Play for a short primer, or take the Guided Tour.");
   if (showTour) {
     setTimeout(()=>openHelp(), 400);
@@ -428,3 +477,11 @@ function refreshAll(){
 
 // Boot
 startNewCampaign();
+
+// Resize handlers to keep canvases crisp on orientation change
+window.addEventListener("resize", ()=>{
+  fitCanvasToDisplay(els.canvas);
+  fitCanvasToDisplay(els.mapCanvas);
+  fitCanvasToDisplay(els.serpentsCanvas);
+  refreshAll();
+}, { passive:true });

@@ -16,6 +16,7 @@ body{
   background: radial-gradient(1200px 800px at 40% 20%, #2b2117 0%, #1a130d 60%, #0b0806 100%);
   color:#f7f2e8;
   font-family: "IM Fell DW Pica", serif;
+  -webkit-tap-highlight-color: transparent;
 }
 
 /* Ink swipe */
@@ -49,6 +50,7 @@ body{
   display:flex; align-items:center; justify-content:space-between;
   padding:10px 16px; background:linear-gradient(#2a2017, #1e160f);
   border-bottom:1px solid rgba(255,255,255,.08);
+  position:sticky; top:0; z-index:50;
 }
 .title{font-size:26px; letter-spacing:1px}
 .dropcap{font-size:34px; color:var(--gold); text-shadow:0 0 8px rgba(178,139,51,.3)}
@@ -105,20 +107,19 @@ body{
   border:1px solid rgba(0,0,0,.2); border-radius:6px; font-size:14px
 }
 
+/* Canvas & dropzones */
 .canvas-panel{display:flex; flex-direction:column}
 .scene-toolbar{display:flex; gap:6px; padding:8px; background:rgba(0,0,0,.06)}
 .canvas{
   width:100%; aspect-ratio:16/9; background:#101010; display:block;
-  border-top:1px solid rgba(0,0,0,.2)
+  border-top:1px solid rgba(0,0,0,.2);
+  touch-action:none;
 }
 .dropzones{
   position:absolute; inset:0; pointer-events:none; display:grid; grid-template-columns: repeat(3, 1fr); gap:6px; padding:8px;
 }
-.dropzone{
-  align-self:end; justify-self:center; width:90%; max-width:220px; padding:6px; text-align:center;
-  background: rgba(121, 44, 31, .12); border:1px dashed rgba(121,44,31,.6);
-  border-radius:6px; pointer-events:auto; color:#3a281f; font-weight:bold
-}
+.dropzone, .portrait-drop{ transition: background .15s ease, transform .1s ease }
+.dropzone.hover, .portrait-drop.hover{ background: rgba(121,44,31,.2); transform: scale(1.02) }
 
 /* Right side */
 .mini-map{padding:8px}
@@ -232,9 +233,26 @@ body{
 }
 
 /* Responsive */
-@media (max-width: 1100px){
-  .layout{grid-template-columns: 1fr}
+@media (max-width: 900px){
+  .layout{grid-template-columns: 1fr; gap:8px; padding:8px}
+  .header-controls{flex-wrap:wrap; gap:6px}
+  .btn{padding:10px 12px}
+  .btn.small, .btn.tiny{padding:8px 10px; font-size:12px}
+  .codex{order:2}
+  .canvas-panel{order:1}
   .right{order:3}
-  .codex{order:1}
-  .canvas-panel{order:2}
+  .mini-map, .meters, .factions{padding:6px}
+  .dropzones{grid-template-columns: 1fr}
+  .dropzone{max-width:none; width:95%; justify-self:center}
+
+  /* Dialogue as bottom sheet on mobile */
+  .dialogue{
+    right:0; left:0; bottom:0; width:auto; max-width:none; border-radius:12px 12px 0 0;
+  }
+}
+
+/* Reduce motion for users who prefer it */
+@media (prefers-reduced-motion: reduce){
+  .ink-swipe{transition:none}
+  .pulse{animation:none}
 }
