@@ -111,7 +111,7 @@ body{
 .canvas-panel{display:flex; flex-direction:column}
 .scene-toolbar{display:flex; gap:6px; padding:8px; background:rgba(0,0,0,.06)}
 .canvas{
-  width:100%; aspect-ratio:16/9; background:#101010; display:block;
+  width:100%; aspect-ratio:16/9; background:transparent; display:block;
   border-top:1px solid rgba(0,0,0,.2);
   touch-action:none;
 }
