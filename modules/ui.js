@@ -294,22 +294,33 @@ function createCouncil() {
     group.add(chair);
   }
 
-  // Improved council chamber lighting
-  const ambientLight = new THREE.AmbientLight(0x4A2C1A, 0.6);
+  // Much brighter ambient lighting for council chamber
+  const ambientLight = new THREE.AmbientLight(0xFFE4B5, 1.2);
   group.add(ambientLight);
   
   // Multiple candle-like point lights with better intensity
   for (let i = 0; i < 4; i++) {
-    const candleLight = new THREE.PointLight(0xFFAA00, 1.2, 12);
+    const candleLight = new THREE.PointLight(0xFFAA00, 2.0, 15);
     candleLight.position.set((i % 2 - 0.5) * 8, 4, Math.floor(i / 2) * 8 - 4);
     candleLight.castShadow = true;
     group.add(candleLight);
   }
 
-  // Add overhead lighting for better visibility
-  const overheadLight = new THREE.DirectionalLight(0xFF8800, 0.4);
-  overheadLight.position.set(0, 10, 0);
+  // Strong overhead directional lighting
+  const overheadLight = new THREE.DirectionalLight(0xFFE4B5, 1.0);
+  overheadLight.position.set(0, 15, 0);
+  overheadLight.target.position.set(0, 0, 0);
   group.add(overheadLight);
+  group.add(overheadLight.target);
+
+  // Additional fill lighting from multiple angles
+  const fillLight1 = new THREE.DirectionalLight(0xFFD700, 0.6);
+  fillLight1.position.set(10, 8, 10);
+  group.add(fillLight1);
+
+  const fillLight2 = new THREE.DirectionalLight(0xFFD700, 0.6);
+  fillLight2.position.set(-10, 8, -10);
+  group.add(fillLight2);
 
   return group;
 }
@@ -344,23 +355,47 @@ function createWarRoom() {
     group.add(rack);
   }
 
-  // Improved war room lighting
-  const ambientLight = new THREE.AmbientLight(0x4A2C2A, 0.5);
+  // Much brighter ambient lighting for war room
+  const ambientLight = new THREE.AmbientLight(0xFFE4B5, 1.0);
   group.add(ambientLight);
   
-  const fireLight = new THREE.PointLight(0xFF4500, 1.5, 18);
-  fireLight.position.set(-6, 3, -6);
+  // Bright central fire light
+  const fireLight = new THREE.PointLight(0xFF4500, 2.5, 25);
+  fireLight.position.set(-6, 4, -6);
   fireLight.castShadow = true;
   group.add(fireLight);
 
-  // Additional strategic lighting
-  const torchLight1 = new THREE.PointLight(0xFFAA44, 0.8, 10);
-  torchLight1.position.set(6, 3, 6);
+  // Multiple torch lights for even illumination
+  const torchLight1 = new THREE.PointLight(0xFFAA44, 1.5, 15);
+  torchLight1.position.set(6, 4, 6);
+  torchLight1.castShadow = true;
   group.add(torchLight1);
 
-  const torchLight2 = new THREE.PointLight(0xFFAA44, 0.8, 10);
-  torchLight2.position.set(-6, 3, 6);
+  const torchLight2 = new THREE.PointLight(0xFFAA44, 1.5, 15);
+  torchLight2.position.set(-6, 4, 6);
+  torchLight2.castShadow = true;
   group.add(torchLight2);
+
+  const torchLight3 = new THREE.PointLight(0xFFAA44, 1.5, 15);
+  torchLight3.position.set(6, 4, -6);
+  torchLight3.castShadow = true;
+  group.add(torchLight3);
+
+  // Strong directional lighting from above
+  const overheadLight = new THREE.DirectionalLight(0xFFE4B5, 0.8);
+  overheadLight.position.set(0, 12, 0);
+  overheadLight.target.position.set(0, 0, 0);
+  group.add(overheadLight);
+  group.add(overheadLight.target);
+
+  // Additional strategic lighting for visibility
+  const strategicLight1 = new THREE.DirectionalLight(0xFF8844, 0.5);
+  strategicLight1.position.set(8, 6, 8);
+  group.add(strategicLight1);
+
+  const strategicLight2 = new THREE.DirectionalLight(0xFF8844, 0.5);
+  strategicLight2.position.set(-8, 6, -8);
+  group.add(strategicLight2);
 
   return group;
 }
@@ -456,14 +491,8 @@ export function drawFlorence(ctx, state){
 let animationId;
 function tick(){
   if (renderer && threeScene && camera) {
-    // Only add subtle movement if not dragging
-    if (!cameraControls.isDragging) {
-      const time = Date.now() * 0.0005;
-      // Much subtler automatic movement
-      const autoRotation = Math.sin(time) * 0.02;
-      cameraControls.spherical.theta += autoRotation;
-      updateCameraPosition();
-    }
+    // Remove automatic rotation to prevent infinite spinning glitch
+    // Only update camera if user is actively dragging
     
     // Render the 3D scene
     renderer.render(threeScene, camera);
