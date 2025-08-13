@@ -16,11 +16,20 @@ async function startNewCampaign(showTour = false) {
   await ensurePortraits();
   await initAI();
   await initAudio(Tone);
-  init2_5D(els.canvas);
-  initMap(els.mapCanvas);
-  fitCanvasToDisplay(els.canvas);
-  fitCanvasToDisplay(els.mapCanvas);
-  fitCanvasToDisplay(els.serpentsCanvas);
+  
+  // Ensure canvas elements exist before initializing
+  if (els.canvas) {
+    init2_5D(els.canvas);
+    fitCanvasToDisplay(els.canvas);
+  }
+  if (els.mapCanvas) {
+    initMap(els.mapCanvas);
+    fitCanvasToDisplay(els.mapCanvas);
+  }
+  if (els.serpentsCanvas) {
+    fitCanvasToDisplay(els.serpentsCanvas);
+  }
+  
   refreshAll();
   
   const line = document.createElement("div");

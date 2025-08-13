@@ -297,19 +297,23 @@ function setupResponsiveCanvases(){
   // Main scene canvas
   if (canvas && renderer) {
     fitCanvasToDisplay(canvas);
-    renderer.setSize(canvas.clientWidth, canvas.clientHeight);
-    if (camera) {
-      camera.aspect = canvas.clientWidth / canvas.clientHeight;
-      camera.updateProjectionMatrix();
-    }
-    // Force a render after resize
-    if (threeScene) {
-      renderer.render(threeScene, camera);
+    const rect = canvas.getBoundingClientRect();
+    if (rect.width > 0 && rect.height > 0) { // Ensure canvas has dimensions
+      renderer.setSize(canvas.clientWidth, canvas.clientHeight);
+      if (camera) {
+        camera.aspect = canvas.clientWidth / canvas.clientHeight;
+        camera.updateProjectionMatrix();
+      }
+      // Force a render after resize
+      if (threeScene) {
+        renderer.render(threeScene, camera);
+      }
     }
   }
 }
 
 export function fitCanvasToDisplay(cnv){
+  if (!cnv) return; // Add null check
   const dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
   const rect = cnv.getBoundingClientRect();
   const w = Math.floor(rect.width * dpr);
@@ -319,7 +323,9 @@ export function fitCanvasToDisplay(cnv){
     cnv.height = h;
   }
   const ctx = cnv.getContext("2d");
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0); // draw using CSS pixels
+  if (ctx) { // Add null check for context
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0); // draw using CSS pixels
+  }
 }
 
 async function generateLayers(){
