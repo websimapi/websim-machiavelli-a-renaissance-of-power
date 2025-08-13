@@ -1,4 +1,4 @@
-import { els } from "../main.js";
+import { els } from "./elements.js";
 import { applyCovertAction, onLog } from "./simulation.js";
 import { setScene, inkSwipe, fitCanvasToDisplay } from "./ui.js";
 import { openDialogue, sendComposedMessage, closeDialogue, setPortraitGetter } from "./dialogue.js";

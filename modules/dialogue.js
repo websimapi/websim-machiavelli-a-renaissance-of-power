@@ -1,4 +1,4 @@
-import { els } from "../main.js";
+import { els } from "./elements.js";
 import { parleyWithFaction } from "./ai.js";
 import { getState } from "./simulation.js";
 import { updateReputationUI } from "../main.js";

@@ -1,4 +1,4 @@
-import { els } from "../main.js";
+import { els } from "./elements.js";
 
 const tourSteps = [
   { el: () => document.querySelector(".tokens"), text: "Drag these covert tokens onto the map or a faction portrait to act in shadows." },
