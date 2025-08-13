@@ -11,6 +11,14 @@ let threeScene, camera, renderer;
 let environments = {};
 let currentEnvironment = null;
 
+// Camera controls
+let cameraControls = {
+  isDragging: false,
+  previousPointer: { x: 0, y: 0 },
+  spherical: { radius: 8, phi: Math.PI / 3, theta: 0 },
+  target: { x: 0, y: 0, z: 0 }
+};
+
 export function init2_5D(c){
   canvas = c;
   setupResponsiveCanvases();
@@ -34,8 +42,7 @@ function init3DScene() {
   // Create camera
   const aspect = canvas.clientWidth / canvas.clientHeight;
   camera = new THREE.PerspectiveCamera(60, aspect, 0.1, 1000);
-  camera.position.set(0, 2, 5);
-  camera.lookAt(0, 0, 0);
+  updateCameraPosition();
 
   // Create renderer - ensure it uses the canvas correctly
   renderer = new THREE.WebGLRenderer({ 
@@ -56,8 +63,68 @@ function init3DScene() {
   // Set initial environment
   setEnvironment(scene);
   
+  // Add camera controls
+  setupCameraControls();
+  
   // Start the render loop immediately
   tick();
+}
+
+function setupCameraControls() {
+  // Mouse events
+  canvas.addEventListener('pointerdown', onPointerDown);
+  canvas.addEventListener('pointermove', onPointerMove);
+  canvas.addEventListener('pointerup', onPointerUp);
+  canvas.addEventListener('pointerleave', onPointerUp);
+  
+  // Prevent context menu on right click
+  canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+}
+
+function onPointerDown(event) {
+  cameraControls.isDragging = true;
+  cameraControls.previousPointer.x = event.clientX;
+  cameraControls.previousPointer.y = event.clientY;
+  canvas.style.cursor = 'grabbing';
+  event.preventDefault();
+}
+
+function onPointerMove(event) {
+  if (!cameraControls.isDragging) return;
+  
+  const deltaX = event.clientX - cameraControls.previousPointer.x;
+  const deltaY = event.clientY - cameraControls.previousPointer.y;
+  
+  // Update spherical coordinates
+  cameraControls.spherical.theta -= deltaX * 0.01;
+  cameraControls.spherical.phi += deltaY * 0.01;
+  
+  // Clamp phi to prevent flipping
+  cameraControls.spherical.phi = Math.max(0.1, Math.min(Math.PI - 0.1, cameraControls.spherical.phi));
+  
+  updateCameraPosition();
+  
+  cameraControls.previousPointer.x = event.clientX;
+  cameraControls.previousPointer.y = event.clientY;
+  
+  event.preventDefault();
+}
+
+function onPointerUp(event) {
+  cameraControls.isDragging = false;
+  canvas.style.cursor = 'grab';
+  event.preventDefault();
+}
+
+function updateCameraPosition() {
+  const spherical = cameraControls.spherical;
+  const target = cameraControls.target;
+  
+  camera.position.x = target.x + spherical.radius * Math.sin(spherical.phi) * Math.cos(spherical.theta);
+  camera.position.y = target.y + spherical.radius * Math.cos(spherical.phi);
+  camera.position.z = target.z + spherical.radius * Math.sin(spherical.phi) * Math.sin(spherical.theta);
+  
+  camera.lookAt(target.x, target.y, target.z);
 }
 
 function createEnvironments() {
@@ -123,11 +190,11 @@ function createCourtyard() {
     group.add(pillar);
   }
 
-  // Stronger ambient lighting
-  const ambientLight = new THREE.AmbientLight(0xFFE4B5, 0.6);
+  // Much stronger ambient lighting
+  const ambientLight = new THREE.AmbientLight(0xFFE4B5, 0.8);
   group.add(ambientLight);
   
-  const dirLight = new THREE.DirectionalLight(0xFFD700, 1.0);
+  const dirLight = new THREE.DirectionalLight(0xFFD700, 1.2);
   dirLight.position.set(5, 10, 5);
   dirLight.castShadow = true;
   dirLight.shadow.mapSize.width = 2048;
@@ -139,6 +206,11 @@ function createCourtyard() {
   dirLight.shadow.camera.top = 20;
   dirLight.shadow.camera.bottom = -20;
   group.add(dirLight);
+
+  // Add fill light for better visibility
+  const fillLight = new THREE.DirectionalLight(0xFFE4B5, 0.4);
+  fillLight.position.set(-5, 5, -5);
+  group.add(fillLight);
 
   return group;
 }
@@ -175,14 +247,19 @@ function createMarket() {
     group.add(awning);
   }
 
-  // Market lighting
-  const ambientLight = new THREE.AmbientLight(0xFFE4B5, 0.5);
+  // Stronger market lighting
+  const ambientLight = new THREE.AmbientLight(0xFFE4B5, 0.7);
   group.add(ambientLight);
   
-  const dirLight = new THREE.DirectionalLight(0xFFD700, 0.7);
+  const dirLight = new THREE.DirectionalLight(0xFFD700, 1.0);
   dirLight.position.set(10, 15, 10);
   dirLight.castShadow = true;
   group.add(dirLight);
+
+  // Additional warm lighting
+  const warmLight = new THREE.DirectionalLight(0xFFA500, 0.3);
+  warmLight.position.set(-8, 8, -8);
+  group.add(warmLight);
 
   return group;
 }
@@ -217,17 +294,22 @@ function createCouncil() {
     group.add(chair);
   }
 
-  // Dramatic candlelit lighting
-  const ambientLight = new THREE.AmbientLight(0x2A1810, 0.3);
+  // Improved council chamber lighting
+  const ambientLight = new THREE.AmbientLight(0x4A2C1A, 0.6);
   group.add(ambientLight);
   
-  // Multiple candle-like point lights
+  // Multiple candle-like point lights with better intensity
   for (let i = 0; i < 4; i++) {
-    const candleLight = new THREE.PointLight(0xFFAA00, 0.8, 10);
-    candleLight.position.set((i % 2 - 0.5) * 8, 3, Math.floor(i / 2) * 8 - 4);
+    const candleLight = new THREE.PointLight(0xFFAA00, 1.2, 12);
+    candleLight.position.set((i % 2 - 0.5) * 8, 4, Math.floor(i / 2) * 8 - 4);
     candleLight.castShadow = true;
     group.add(candleLight);
   }
+
+  // Add overhead lighting for better visibility
+  const overheadLight = new THREE.DirectionalLight(0xFF8800, 0.4);
+  overheadLight.position.set(0, 10, 0);
+  group.add(overheadLight);
 
   return group;
 }
@@ -262,14 +344,23 @@ function createWarRoom() {
     group.add(rack);
   }
 
-  // Strategic lighting
-  const ambientLight = new THREE.AmbientLight(0x4A2C2A, 0.3);
+  // Improved war room lighting
+  const ambientLight = new THREE.AmbientLight(0x4A2C2A, 0.5);
   group.add(ambientLight);
   
-  const fireLight = new THREE.PointLight(0xFF4500, 1.2, 15);
-  fireLight.position.set(-6, 2, -6);
+  const fireLight = new THREE.PointLight(0xFF4500, 1.5, 18);
+  fireLight.position.set(-6, 3, -6);
   fireLight.castShadow = true;
   group.add(fireLight);
+
+  // Additional strategic lighting
+  const torchLight1 = new THREE.PointLight(0xFFAA44, 0.8, 10);
+  torchLight1.position.set(6, 3, 6);
+  group.add(torchLight1);
+
+  const torchLight2 = new THREE.PointLight(0xFFAA44, 0.8, 10);
+  torchLight2.position.set(-6, 3, 6);
+  group.add(torchLight2);
 
   return group;
 }
@@ -365,11 +456,14 @@ export function drawFlorence(ctx, state){
 let animationId;
 function tick(){
   if (renderer && threeScene && camera) {
-    // Add subtle camera movement for liveliness
-    const time = Date.now() * 0.001;
-    camera.position.x = Math.sin(time * 0.2) * 0.5;
-    camera.position.y = 2 + Math.sin(time * 0.3) * 0.3;
-    camera.lookAt(0, 0, 0);
+    // Only add subtle movement if not dragging
+    if (!cameraControls.isDragging) {
+      const time = Date.now() * 0.0005;
+      // Much subtler automatic movement
+      const autoRotation = Math.sin(time) * 0.02;
+      cameraControls.spherical.theta += autoRotation;
+      updateCameraPosition();
+    }
     
     // Render the 3D scene
     renderer.render(threeScene, camera);
