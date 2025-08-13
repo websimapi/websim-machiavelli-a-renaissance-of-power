@@ -1,4 +1,4 @@
-import * as Tone from "tone";
+import Tone from "tone";
 import { initAudio, setMode } from "./modules/audio.js";
 import { initAI, parleyWithFaction, draftDirectiveAI, describeFortuna } from "./modules/ai.js";
 import { initSim, applyCovertAction, nextTurn, getState, onLog } from "./modules/simulation.js";
@@ -316,7 +316,7 @@ async function startNewCampaign(){
   initSim(); // fresh state
   await ensurePortraits();
   await initAI();
-  initAudio(Tone);
+  await initAudio(Tone);
   setMode("minor");
   init2_5D(els.canvas);
   initMap(els.mapCanvas);
@@ -335,4 +335,3 @@ function refreshAll(){
 
 // Boot
 startNewCampaign();
-
