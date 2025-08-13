@@ -19,6 +19,15 @@ let cameraControls = {
   target: { x: 0, y: 0, z: 0 }
 };
 
+// Mobile detection and performance settings
+const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768;
+const performanceSettings = {
+  pixelRatio: isMobile ? 1 : Math.min(window.devicePixelRatio, 2),
+  shadows: !isMobile,
+  lightCount: isMobile ? 1 : 4,
+  antialias: !isMobile
+};
+
 export function init2_5D(c){
   canvas = c;
   setupResponsiveCanvases();
@@ -44,17 +53,23 @@ function init3DScene() {
   camera = new THREE.PerspectiveCamera(60, aspect, 0.1, 1000);
   updateCameraPosition();
 
-  // Create renderer - ensure it uses the canvas correctly
+  // Create renderer with mobile optimizations
   renderer = new THREE.WebGLRenderer({ 
     canvas: canvas, 
-    antialias: true,
+    antialias: performanceSettings.antialias,
     alpha: false,
-    preserveDrawingBuffer: false
+    preserveDrawingBuffer: false,
+    powerPreference: isMobile ? "low-power" : "high-performance"
   });
   renderer.setSize(canvas.clientWidth, canvas.clientHeight);
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-  renderer.shadowMap.enabled = true;
-  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.setPixelRatio(performanceSettings.pixelRatio);
+  
+  // Only enable shadows on desktop
+  if (performanceSettings.shadows) {
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  }
+  
   renderer.outputColorSpace = THREE.SRGBColorSpace;
 
   // Create environments for each scene
@@ -147,7 +162,7 @@ function createCourtyard() {
   });
   const ground = new THREE.Mesh(groundGeometry, groundMaterial);
   ground.rotation.x = -Math.PI / 2;
-  ground.receiveShadow = true;
+  if (performanceSettings.shadows) ground.receiveShadow = true;
   group.add(ground);
 
   // Courtyard walls - make them more visible
@@ -156,19 +171,19 @@ function createCourtyard() {
   
   const leftWall = new THREE.Mesh(wallGeometry, wallMaterial);
   leftWall.position.set(-10, 2, 0);
-  leftWall.castShadow = true;
+  if (performanceSettings.shadows) leftWall.castShadow = true;
   group.add(leftWall);
   
   const rightWall = new THREE.Mesh(wallGeometry, wallMaterial);
   rightWall.position.set(10, 2, 0);
-  rightWall.castShadow = true;
+  if (performanceSettings.shadows) rightWall.castShadow = true;
   group.add(rightWall);
 
   // Back wall
   const backWallGeometry = new THREE.BoxGeometry(20, 4, 0.5);
   const backWall = new THREE.Mesh(backWallGeometry, wallMaterial);
   backWall.position.set(0, 2, -10);
-  backWall.castShadow = true;
+  if (performanceSettings.shadows) backWall.castShadow = true;
   group.add(backWall);
 
   // Fountain centerpiece - make it more prominent
@@ -176,41 +191,46 @@ function createCourtyard() {
   const fountainMaterial = new THREE.MeshLambertMaterial({ color: 0xA0A0A0 });
   const fountain = new THREE.Mesh(fountainGeometry, fountainMaterial);
   fountain.position.set(0, 0.75, 0);
-  fountain.castShadow = true;
+  if (performanceSettings.shadows) fountain.castShadow = true;
   group.add(fountain);
 
-  // Add some architectural details
-  for (let i = 0; i < 4; i++) {
+  // Add some architectural details - reduce on mobile
+  const pillarCount = isMobile ? 2 : 4;
+  for (let i = 0; i < pillarCount; i++) {
     const pillarGeometry = new THREE.BoxGeometry(0.8, 5, 0.8);
     const pillarMaterial = new THREE.MeshLambertMaterial({ color: 0xC4A484 });
     const pillar = new THREE.Mesh(pillarGeometry, pillarMaterial);
-    const angle = (i / 4) * Math.PI * 2;
+    const angle = (i / pillarCount) * Math.PI * 2;
     pillar.position.set(Math.cos(angle) * 6, 2.5, Math.sin(angle) * 6);
-    pillar.castShadow = true;
+    if (performanceSettings.shadows) pillar.castShadow = true;
     group.add(pillar);
   }
 
-  // Much stronger ambient lighting
-  const ambientLight = new THREE.AmbientLight(0xFFE4B5, 0.8);
+  // Simplified lighting for mobile
+  const ambientLight = new THREE.AmbientLight(0xFFE4B5, isMobile ? 1.2 : 0.8);
   group.add(ambientLight);
   
-  const dirLight = new THREE.DirectionalLight(0xFFD700, 1.2);
+  const dirLight = new THREE.DirectionalLight(0xFFD700, isMobile ? 0.8 : 1.2);
   dirLight.position.set(5, 10, 5);
-  dirLight.castShadow = true;
-  dirLight.shadow.mapSize.width = 2048;
-  dirLight.shadow.mapSize.height = 2048;
-  dirLight.shadow.camera.near = 0.1;
-  dirLight.shadow.camera.far = 50;
-  dirLight.shadow.camera.left = -20;
-  dirLight.shadow.camera.right = 20;
-  dirLight.shadow.camera.top = 20;
-  dirLight.shadow.camera.bottom = -20;
+  if (performanceSettings.shadows) {
+    dirLight.castShadow = true;
+    dirLight.shadow.mapSize.width = isMobile ? 512 : 2048;
+    dirLight.shadow.mapSize.height = isMobile ? 512 : 2048;
+    dirLight.shadow.camera.near = 0.1;
+    dirLight.shadow.camera.far = 50;
+    dirLight.shadow.camera.left = -20;
+    dirLight.shadow.camera.right = 20;
+    dirLight.shadow.camera.top = 20;
+    dirLight.shadow.camera.bottom = -20;
+  }
   group.add(dirLight);
 
-  // Add fill light for better visibility
-  const fillLight = new THREE.DirectionalLight(0xFFE4B5, 0.4);
-  fillLight.position.set(-5, 5, -5);
-  group.add(fillLight);
+  // Skip fill light on mobile
+  if (!isMobile) {
+    const fillLight = new THREE.DirectionalLight(0xFFE4B5, 0.4);
+    fillLight.position.set(-5, 5, -5);
+    group.add(fillLight);
+  }
 
   return group;
 }
@@ -223,16 +243,21 @@ function createMarket() {
   const groundMaterial = new THREE.MeshLambertMaterial({ color: 0x8B6F47 });
   const ground = new THREE.Mesh(groundGeometry, groundMaterial);
   ground.rotation.x = -Math.PI / 2;
-  ground.receiveShadow = true;
+  if (performanceSettings.shadows) ground.receiveShadow = true;
   group.add(ground);
 
-  // Market stalls
-  for (let i = 0; i < 6; i++) {
+  // Reduce stall count on mobile
+  const stallCount = isMobile ? 3 : 6;
+  for (let i = 0; i < stallCount; i++) {
     const stallGeometry = new THREE.BoxGeometry(3, 3, 2);
     const stallMaterial = new THREE.MeshLambertMaterial({ color: 0xDEB887 });
     const stall = new THREE.Mesh(stallGeometry, stallMaterial);
-    stall.position.set((i % 3 - 1) * 5, 1.5, Math.floor(i / 3) * 6 - 3);
-    stall.castShadow = true;
+    if (isMobile) {
+      stall.position.set((i - 1) * 5, 1.5, 0);
+    } else {
+      stall.position.set((i % 3 - 1) * 5, 1.5, Math.floor(i / 3) * 6 - 3);
+    }
+    if (performanceSettings.shadows) stall.castShadow = true;
     group.add(stall);
 
     // Awnings
@@ -247,19 +272,21 @@ function createMarket() {
     group.add(awning);
   }
 
-  // Stronger market lighting
-  const ambientLight = new THREE.AmbientLight(0xFFE4B5, 0.7);
+  // Simplified lighting
+  const ambientLight = new THREE.AmbientLight(0xFFE4B5, isMobile ? 1.0 : 0.7);
   group.add(ambientLight);
   
-  const dirLight = new THREE.DirectionalLight(0xFFD700, 1.0);
+  const dirLight = new THREE.DirectionalLight(0xFFD700, isMobile ? 0.6 : 1.0);
   dirLight.position.set(10, 15, 10);
-  dirLight.castShadow = true;
+  if (performanceSettings.shadows) dirLight.castShadow = true;
   group.add(dirLight);
 
-  // Additional warm lighting
-  const warmLight = new THREE.DirectionalLight(0xFFA500, 0.3);
-  warmLight.position.set(-8, 8, -8);
-  group.add(warmLight);
+  // Skip additional lighting on mobile
+  if (!isMobile) {
+    const warmLight = new THREE.DirectionalLight(0xFFA500, 0.3);
+    warmLight.position.set(-8, 8, -8);
+    group.add(warmLight);
+  }
 
   return group;
 }
@@ -272,7 +299,7 @@ function createCouncil() {
   const floorMaterial = new THREE.MeshLambertMaterial({ color: 0x4A4A4A });
   const floor = new THREE.Mesh(floorGeometry, floorMaterial);
   floor.rotation.x = -Math.PI / 2;
-  floor.receiveShadow = true;
+  if (performanceSettings.shadows) floor.receiveShadow = true;
   group.add(floor);
 
   // Long council table
@@ -280,47 +307,57 @@ function createCouncil() {
   const tableMaterial = new THREE.MeshLambertMaterial({ color: 0x654321 });
   const table = new THREE.Mesh(tableGeometry, tableMaterial);
   table.position.set(0, 1, 0);
-  table.castShadow = true;
+  if (performanceSettings.shadows) table.castShadow = true;
   group.add(table);
 
-  // Chairs around table
-  for (let i = 0; i < 8; i++) {
+  // Reduce chair count on mobile
+  const chairCount = isMobile ? 4 : 8;
+  for (let i = 0; i < chairCount; i++) {
     const chairGeometry = new THREE.BoxGeometry(0.8, 1.5, 0.8);
     const chairMaterial = new THREE.MeshLambertMaterial({ color: 0x8B4513 });
     const chair = new THREE.Mesh(chairGeometry, chairMaterial);
-    const angle = (i / 8) * Math.PI * 2;
+    const angle = (i / chairCount) * Math.PI * 2;
     chair.position.set(Math.cos(angle) * 4, 0.75, Math.sin(angle) * 2.5);
-    chair.castShadow = true;
+    if (performanceSettings.shadows) chair.castShadow = true;
     group.add(chair);
   }
 
-  // Much brighter ambient lighting for council chamber
-  const ambientLight = new THREE.AmbientLight(0xFFE4B5, 1.2);
+  // Stronger ambient for mobile, fewer point lights
+  const ambientLight = new THREE.AmbientLight(0xFFE4B5, isMobile ? 1.8 : 1.2);
   group.add(ambientLight);
   
-  // Multiple candle-like point lights with better intensity
-  for (let i = 0; i < 4; i++) {
-    const candleLight = new THREE.PointLight(0xFFAA00, 2.0, 15);
-    candleLight.position.set((i % 2 - 0.5) * 8, 4, Math.floor(i / 2) * 8 - 4);
-    candleLight.castShadow = true;
-    group.add(candleLight);
+  if (isMobile) {
+    // Single overhead light for mobile
+    const overheadLight = new THREE.DirectionalLight(0xFFE4B5, 1.5);
+    overheadLight.position.set(0, 15, 0);
+    overheadLight.target.position.set(0, 0, 0);
+    group.add(overheadLight);
+    group.add(overheadLight.target);
+  } else {
+    // Multiple candle-like point lights with better intensity
+    for (let i = 0; i < 4; i++) {
+      const candleLight = new THREE.PointLight(0xFFAA00, 2.0, 15);
+      candleLight.position.set((i % 2 - 0.5) * 8, 4, Math.floor(i / 2) * 8 - 4);
+      if (performanceSettings.shadows) candleLight.castShadow = true;
+      group.add(candleLight);
+    }
+
+    // Strong overhead directional lighting
+    const overheadLight = new THREE.DirectionalLight(0xFFE4B5, 1.0);
+    overheadLight.position.set(0, 15, 0);
+    overheadLight.target.position.set(0, 0, 0);
+    group.add(overheadLight);
+    group.add(overheadLight.target);
+
+    // Additional fill lighting from multiple angles
+    const fillLight1 = new THREE.DirectionalLight(0xFFD700, 0.6);
+    fillLight1.position.set(10, 8, 10);
+    group.add(fillLight1);
+
+    const fillLight2 = new THREE.DirectionalLight(0xFFD700, 0.6);
+    fillLight2.position.set(-10, 8, -10);
+    group.add(fillLight2);
   }
-
-  // Strong overhead directional lighting
-  const overheadLight = new THREE.DirectionalLight(0xFFE4B5, 1.0);
-  overheadLight.position.set(0, 15, 0);
-  overheadLight.target.position.set(0, 0, 0);
-  group.add(overheadLight);
-  group.add(overheadLight.target);
-
-  // Additional fill lighting from multiple angles
-  const fillLight1 = new THREE.DirectionalLight(0xFFD700, 0.6);
-  fillLight1.position.set(10, 8, 10);
-  group.add(fillLight1);
-
-  const fillLight2 = new THREE.DirectionalLight(0xFFD700, 0.6);
-  fillLight2.position.set(-10, 8, -10);
-  group.add(fillLight2);
 
   return group;
 }
@@ -333,7 +370,7 @@ function createWarRoom() {
   const floorMaterial = new THREE.MeshLambertMaterial({ color: 0x3C2414 });
   const floor = new THREE.Mesh(floorGeometry, floorMaterial);
   floor.rotation.x = -Math.PI / 2;
-  floor.receiveShadow = true;
+  if (performanceSettings.shadows) floor.receiveShadow = true;
   group.add(floor);
 
   // War table with map
@@ -341,61 +378,71 @@ function createWarRoom() {
   const warTableMaterial = new THREE.MeshLambertMaterial({ color: 0x654321 });
   const warTable = new THREE.Mesh(warTableGeometry, warTableMaterial);
   warTable.position.set(0, 1, 0);
-  warTable.castShadow = true;
+  if (performanceSettings.shadows) warTable.castShadow = true;
   group.add(warTable);
 
-  // Weapon racks
-  for (let i = 0; i < 4; i++) {
+  // Reduce weapon racks on mobile
+  const rackCount = isMobile ? 2 : 4;
+  for (let i = 0; i < rackCount; i++) {
     const rackGeometry = new THREE.BoxGeometry(0.2, 3, 4);
     const rackMaterial = new THREE.MeshLambertMaterial({ color: 0x8B4513 });
     const rack = new THREE.Mesh(rackGeometry, rackMaterial);
-    const angle = (i / 4) * Math.PI * 2;
+    const angle = (i / rackCount) * Math.PI * 2;
     rack.position.set(Math.cos(angle) * 8, 1.5, Math.sin(angle) * 8);
-    rack.castShadow = true;
+    if (performanceSettings.shadows) rack.castShadow = true;
     group.add(rack);
   }
 
-  // Much brighter ambient lighting for war room
-  const ambientLight = new THREE.AmbientLight(0xFFE4B5, 1.0);
+  // Simplified lighting for mobile
+  const ambientLight = new THREE.AmbientLight(0xFFE4B5, isMobile ? 1.5 : 1.0);
   group.add(ambientLight);
   
-  // Bright central fire light
-  const fireLight = new THREE.PointLight(0xFF4500, 2.5, 25);
-  fireLight.position.set(-6, 4, -6);
-  fireLight.castShadow = true;
-  group.add(fireLight);
+  if (isMobile) {
+    // Single strong light for mobile
+    const mainLight = new THREE.DirectionalLight(0xFF8844, 1.2);
+    mainLight.position.set(0, 12, 0);
+    mainLight.target.position.set(0, 0, 0);
+    group.add(mainLight);
+    group.add(mainLight.target);
+  } else {
+    // Bright central fire light
+    const fireLight = new THREE.PointLight(0xFF4500, 2.5, 25);
+    fireLight.position.set(-6, 4, -6);
+    if (performanceSettings.shadows) fireLight.castShadow = true;
+    group.add(fireLight);
 
-  // Multiple torch lights for even illumination
-  const torchLight1 = new THREE.PointLight(0xFFAA44, 1.5, 15);
-  torchLight1.position.set(6, 4, 6);
-  torchLight1.castShadow = true;
-  group.add(torchLight1);
+    // Multiple torch lights for even illumination
+    const torchLight1 = new THREE.PointLight(0xFFAA44, 1.5, 15);
+    torchLight1.position.set(6, 4, 6);
+    if (performanceSettings.shadows) torchLight1.castShadow = true;
+    group.add(torchLight1);
 
-  const torchLight2 = new THREE.PointLight(0xFFAA44, 1.5, 15);
-  torchLight2.position.set(-6, 4, 6);
-  torchLight2.castShadow = true;
-  group.add(torchLight2);
+    const torchLight2 = new THREE.PointLight(0xFFAA44, 1.5, 15);
+    torchLight2.position.set(-6, 4, 6);
+    if (performanceSettings.shadows) torchLight2.castShadow = true;
+    group.add(torchLight2);
 
-  const torchLight3 = new THREE.PointLight(0xFFAA44, 1.5, 15);
-  torchLight3.position.set(6, 4, -6);
-  torchLight3.castShadow = true;
-  group.add(torchLight3);
+    const torchLight3 = new THREE.PointLight(0xFFAA44, 1.5, 15);
+    torchLight3.position.set(6, 4, -6);
+    if (performanceSettings.shadows) torchLight3.castShadow = true;
+    group.add(torchLight3);
 
-  // Strong directional lighting from above
-  const overheadLight = new THREE.DirectionalLight(0xFFE4B5, 0.8);
-  overheadLight.position.set(0, 12, 0);
-  overheadLight.target.position.set(0, 0, 0);
-  group.add(overheadLight);
-  group.add(overheadLight.target);
+    // Strong directional lighting from above
+    const overheadLight = new THREE.DirectionalLight(0xFFE4B5, 0.8);
+    overheadLight.position.set(0, 12, 0);
+    overheadLight.target.position.set(0, 0, 0);
+    group.add(overheadLight);
+    group.add(overheadLight.target);
 
-  // Additional strategic lighting for visibility
-  const strategicLight1 = new THREE.DirectionalLight(0xFF8844, 0.5);
-  strategicLight1.position.set(8, 6, 8);
-  group.add(strategicLight1);
+    // Additional strategic lighting for visibility
+    const strategicLight1 = new THREE.DirectionalLight(0xFF8844, 0.5);
+    strategicLight1.position.set(8, 6, 8);
+    group.add(strategicLight1);
 
-  const strategicLight2 = new THREE.DirectionalLight(0xFF8844, 0.5);
-  strategicLight2.position.set(-8, 6, -8);
-  group.add(strategicLight2);
+    const strategicLight2 = new THREE.DirectionalLight(0xFF8844, 0.5);
+    strategicLight2.position.set(-8, 6, -8);
+    group.add(strategicLight2);
+  }
 
   return group;
 }
@@ -426,6 +473,7 @@ function setupResponsiveCanvases(){
     const rect = canvas.getBoundingClientRect();
     if (rect.width > 0 && rect.height > 0) { // Ensure canvas has dimensions
       renderer.setSize(canvas.clientWidth, canvas.clientHeight);
+      renderer.setPixelRatio(performanceSettings.pixelRatio);
       if (camera) {
         camera.aspect = canvas.clientWidth / canvas.clientHeight;
         camera.updateProjectionMatrix();
@@ -491,13 +539,14 @@ export function drawFlorence(ctx, state){
 let animationId;
 function tick(){
   if (renderer && threeScene && camera) {
-    // Remove automatic rotation to prevent infinite spinning glitch
-    // Only update camera if user is actively dragging
-    
     // Render the 3D scene
     renderer.render(threeScene, camera);
   }
-  animationId = requestAnimationFrame(tick);
+  // Reduce frame rate on mobile to improve performance
+  const delay = isMobile ? 33 : 16; // ~30fps on mobile, ~60fps on desktop
+  setTimeout(() => {
+    animationId = requestAnimationFrame(tick);
+  }, delay);
 }
 
 // Transitions
